@@ -1,0 +1,238 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{cite}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{subcaption}
+
+\title{HypRID - Hyperspectral Radar Imaging Dataset}
+
+\author{
+    \IEEEauthorblockN{Steven Chen}
+    \IEEEauthorblockA{
+        Electrical and Computer Engineering \\
+        Rice University \\
+        sc311@rice.edu
+    }
+    \and
+    \IEEEauthorblockN{Yung-Hsin Tsai}
+    \IEEEauthorblockA{
+        Electrical and Computer Engineering\\
+        Rice University \\
+        yt66@rice.edu
+    }
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Reliable 3D scene understanding is important for next-generation autonomous systems operating in real-world environments, where optical sensing alone can degrade under strong lighting, poor weather, or occlusion. To address this limitation, we propose HypRID, a multimodel sensing platform and dataset under development for static-scene 3D perception. The planned sensing suite includes a 300--330 GHz radar, a 77--81 GHz radar, an Intel RealSense D415 RGB-D sensor, and an Ouster OS0-128 LiDAR. This midterm report focuses on the first project milestone, namely the initial integration and preliminary calibration of the 300--330 GHz radar and the RealSense D415. The report also documents early debugging of the depth sensor under challenging lighting conditions. Preliminary calibration results show an RMS alignment error of 0.0677 m over a scene range of approximately 3.4 m, corresponding to about 2\% range-wise error. These results establish a promising foundation for future dataset collection and AI model exploration.
+\end{abstract}
+
+\section{Introduction}
+
+Reliable 3D scene understanding is essential for next-generation autonomous systems operating in roads, warehouses, and other real-world environments. However, many existing 3D sensing systems rely heavily on optical or visible-spectrum sensors, whose performance can degrade under strong lighting, poor weather, or occlusion\cite{guan2020through,prabhakara2022exploring}. This motivates the development of multimodal sensing platforms that combine complementary modalities for more robust perception.
+
+To address this need, we propose \textit{HypRID - Hyperspectral Radar Imaging Dataset}, a multimodal dataset under development for static-scene 3D sensing. In this project, \textit{hyperspectral} refers to the combination of sensing modalities rather than conventional optical hyperspectral imaging. The planned sensing suite includes a 300--330 GHz radar, a 77--81 GHz radar, an Intel RealSense D415 RGB-D sensor, and an Ouster OS0-128 LiDAR, with the LiDAR serving as a geometric ground-truth reference. Compared with existing multimodal datasets such as DeepSense 6G \cite{alkhateeb2023deepsense} and ColoRadar \cite{kramer2022coloradar}, HypRID is distinguished by its inclusion of the 300--330 GHz radar, which may provide finer geometric detail and support future reconstruction-oriented tasks.
+
+This midterm report focuses on the first project milestone: building the initial sensing platform and performing preliminary calibration between the Intel RealSense D415 and the 300--330 GHz radar. It also documents early debugging of the depth sensor under challenging lighting conditions. Preliminary results show that the current two-sensor system can be aligned with an RMS error of 0.0677 m over a scene range of approximately 3.4 m, corresponding to about 2\% range-wise error. These results establish a promising foundation for the next stage of dataset collection and AI model exploration.
+
+\section{Methods}
+
+\subsection{System Setup}
+
+The current HypRID prototype consists of a 300--330 GHz radar and an Intel RealSense D415 RGB-D sensor mounted together as a two-sensor platform. This serves as the first stage of the planned multimodal system, which will later incorporate a 77--81 GHz radar and an Ouster OS0-128 LiDAR. In the final dataset, the LiDAR is intended to serve as the geometric ground-truth reference, while the radar and RGB-D sensors provide complementary sensing modalities for 3D scene capture.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[angle=-90,width=0.9\columnwidth]{figures/system_setup.JPG}
+    \caption{Current HypRID prototype. The Intel RealSense D415 is mounted on the 300--330 GHz radar.}
+    \label{fig:setup}
+\end{figure}
+\FloatBarrier
+
+Table~\ref{tab:sensors} summarizes the sensing modalities planned for HypRID.
+\begin{table}[h]
+\centering
+\caption{Planned sensors in HypRID and current project status.}
+\label{tab:sensors}
+\begin{tabular}{lll}
+\toprule
+Sensor & Freq./Type & Role  \\
+\midrule
+300--330 GHz radar & Sub-THz radar & Fine-detail radar sensing\\
+77--81 GHz radar & mmWave radar & Robust radar sensing \\
+Ouster OS0-128 & 3D LiDAR & Ground-truth reference \\
+RealSense D415 & RGB-D sensor & Optical depth sensing  \\
+\bottomrule
+\end{tabular}
+\end{table}
+\FloatBarrier
+
+\subsection{Depth Sensor Debugging}
+
+Before calibration data collection, the depth sensor was tested under different lighting conditions to evaluate its stability. In bright indoor environments and outdoor scenes, the RealSense D415 produced missing or null depth points, likely due to interference with its IR-based depth sensing process. To improve performance, the sensor settings were manually adjusted by disabling auto-exposure and tuning the exposure, gain, and IR laser power. Increasing the IR laser strength helped provide additional texture for stereo matching, while manual exposure and gain control improved scene-dependent performance. These adjustments produced more complete point clouds and reduced null regions in challenging lighting conditions.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.48\columnwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/indoor_light_on.png}
+        \caption{Light on}
+        \label{fig:indoor_on}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\columnwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/indoor_light_off.png}
+        \caption{Light off}
+        \label{fig:indoor_off}
+    \end{subfigure}
+    \caption{Indoor depth sensing under different lighting conditions. With the light on, ambient lighting interference produces more missing or null depth points. Turning the light off improves the completeness of the captured scene.}
+    \label{fig:indoorfail}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.32\columnwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/outdoor_rgb.png}
+        \caption{RGB image}
+        \label{fig:outdoor_rgb}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.32\columnwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/outdoor_before_tuning.png}
+        \caption{Without tuning}
+        \label{fig:outdoor_before}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.32\columnwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/outdoor_after_tuning.png}
+        \caption{With tuning}
+        \label{fig:outdoor_after}
+    \end{subfigure}
+    \caption{Outdoor scene comparison. From left to right, the RGB image, depth sensing result without manual tuning, and depth sensing result after tuning exposure, gain, and IR laser power. After tuning, fewer null points are observed and more of the background becomes visible.}
+    \label{fig:outdoorfix}
+\end{figure}
+
+\FloatBarrier
+
+\subsection{Calibration Data Collection}
+
+To calibrate the depth sensor to the radar coordinate frame, six metal spheres with diameter 3.5 inches were used as calibration targets. The spheres were placed at different heights, depths, and horizontal positions in the scene to provide non-colinear correspondences across 3D space. Point cloud data were then collected from both the 300--330 GHz radar and the depth sensor for the same calibration scene.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\columnwidth]{figures/calibration_scene.JPG}
+    \caption{Calibration scene with six metal spheres used as shared targets. The spheres were placed at different heights, depths, and horizontal positions to provide non-colinear 3D correspondences.}
+    \label{fig:calibscene}
+\end{figure}
+
+\FloatBarrier
+
+\subsection{Point Selection and Transformation Estimation}
+
+Sphere coordinates were extracted from each sensing modality through a region-based selection process. For both the radar and depth sensor point clouds, the region containing each sphere was manually identified. A short script was then used to search the selected region and extract the highest-intensity point as the sphere coordinate. These corresponding sphere coordinates were used to estimate a transformation from the depth sensor frame to the radar frame.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}{0.48\columnwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/sphere_depth.png}
+        \caption{Depth sensor point cloud}
+        \label{fig:sphere_depth}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\columnwidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/sphere_radar.png}
+        \caption{Radar point cloud}
+        \label{fig:sphere_radar}
+    \end{subfigure}
+    \caption{Comparison of the calibration spheres in the depth sensor and radar point clouds. The spheres are detectable in both sensing modalities.}
+    \label{fig:spherecompare}
+\end{figure}
+
+The coordinate mapping is written as
+
+\begin{equation}
+\mathbf{p}_{r} = \mathbf{R}\mathbf{p}_{d} + \mathbf{t}
+\end{equation}
+
+where $\mathbf{p}_{d}$ is a point in the depth sensor frame, $\mathbf{p}_{r}$ is the corresponding point in the radar frame, $\mathbf{R}$ is the rotation matrix, and $\mathbf{t}$ is the translation vector. The transformation was estimated from the six corresponding sphere coordinates using a DLT-based approach \cite{hartley2003multiple,szeliski2022computer}.
+
+
+\section{Results (Partial)}
+The preliminary calibration between the depth sensor and the 300--330 GHz radar produced the following transformation from the depth sensor frame to the radar frame:
+\begin{equation}
+\mathbf{R} =
+\begin{bmatrix}
+0.984633 & 0.081182 & -0.154619 \\
+-0.072755 & 0.995579 & 0.059415 \\
+0.158759 & -0.047253 & 0.986186
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+\mathbf{t} =
+\begin{bmatrix}
+0.45171 \\
+0.178568 \\
+1.702306
+\end{bmatrix}
+\text{ m}
+\end{equation}
+Calibration quality was evaluated using the point-to-point root mean square (RMS) distance between transformed depth sensor sphere coordinates and their corresponding radar sphere coordinates:
+
+\begin{equation}
+\mathrm{RMS} = \sqrt{\frac{1}{N}\sum_{i=1}^{N}\left\|\mathbf{p}_{r,i} - (\mathbf{R}\mathbf{p}_{d,i} + \mathbf{t})\right\|^2}
+\end{equation}
+
+where $N=6$ is the number of sphere correspondences. This metric was used to quantify the alignment error of the preliminary two-sensor calibration.
+
+Using six sphere correspondences, the alignment error was measured as 0.0677 m RMS. Given a scene range of approximately 3.4 m, this corresponds to about 2\% range-wise error. This result suggests that the current two-sensor configuration can be aligned with good preliminary accuracy.
+
+
+
+
+
+
+
+
+\section{Discussion (Partial)}
+
+The current midterm results show that the initial HypRID sensing platform is feasible and that preliminary cross-sensor calibration between the Intel RealSense D415 and the 300--330 GHz radar can be achieved with good accuracy. Using six sphere correspondences, the estimated transformation produced an RMS alignment error of 0.0677 m over a scene range of approximately 3.4 m, corresponding to about 2\% range-wise error. This result suggests that the present two-sensor setup is suitable as a starting point for future dataset development.
+
+The debugging process for the depth sensor also highlighted an important motivation for HypRID. In both indoor and outdoor environments, the RealSense D415 was sensitive to lighting conditions and produced missing or null depth points when ambient illumination interfered with its IR-based depth sensing. Although manual adjustment of exposure, gain, and IR laser power improved the completeness of the point clouds, these observations reinforce the limitation of relying only on optical depth sensing for 3D perception. This further supports the use of radar-centered multimodal sensing in challenging environments \cite{guan2020through,prabhakara2022exploring}.
+
+At the same time, the current work remains an early project milestone rather than a finalized dataset study. Only the 300--330 GHz radar and the depth sensor have been integrated and calibrated so far, while the 77--81 GHz radar and LiDAR are still under testing or procurement. In addition, official dataset collection has not yet started. Therefore, the current results should be interpreted as evidence of system readiness and calibration feasibility rather than final dataset performance.
+
+\section{Future Work}
+
+The next phase of HypRID will focus on expanding the sensing platform and beginning official dataset collection. This includes integrating the 77--81 GHz radar and the Ouster OS0-128 LiDAR into the system and performing the required calibration procedures for these additional sensors. Initial data collection will begin in controlled indoor environments before moving to more challenging outdoor scenes.
+
+After the sensing platform is completed, the main project focus will shift toward dataset development and AI model exploration. In particular, HypRID is intended to support future work in multimodal 3D reconstruction, while also enabling other downstream tasks such as object classification. Recent work has shown growing interest in radar-based scene representation, point cloud generation, and reconstruction-oriented modeling \cite{prabhakara2022high,borts2024radar,huang2024dart,rafidashti2025neuradar}. These next steps will determine how the collected multimodal data can best be used for robust scene understanding.
+\section*{Acknowledgements}
+
+The authors would like to thank Prof. Ashutosh Sabharwal for advising this capstone project. The authors also thank Sean Farrell and Yiying Liu for their mentorship and guidance throughout the project.
+
+\section*{CRediT Author Statement}
+
+Steven Chen: Conceptualization, methodology, sensor mounting, depth sensor debugging, calibration data collection, software, writing--original draft.\\
+
+Yung-Hsin Tsai: Sensor mounting, initial scans, point selection support.
+
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+\end{document}
